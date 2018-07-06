@@ -22,113 +22,119 @@ import sys
 import re
 import datetime
 import time
+import logging
 
 try:
     import requests
 except ImportError:
+    logging.critical("ImportError for 'requests'; ensure it is installed.")
     sys.exit(71)
 
 try:
     from icalendar import Calendar
 except ImportError:
+    logging.critical("ImportError for 'icalendar'; ensure it is installed.")
     sys.exit(71)
 
 try:
     from jira import JIRA
 except ImportError:
+    logging.critical("ImportError for 'jira'; ensure it is installed.")
     sys.exit(71)
 
-def get_current_project_lead(server, username, password, project_key):
+def get_current_project_lead(jira_config):
     """Polls Jira for the current project lead.
 
     Args:
-        server          str     The URL for the Jira server.
-        username        str     Jira username.
-        password        str     Jira password.
-        project_key     str     Key for the project set of numbers that
-                                prepend all issue IDs; i.e. "SUPPORT-1234"
-                                has the project key "SUPPORT".
+        jira_config     dict    Server, username, password and project
+                                key.
     Returns:
         String: user key.
     """
-    jira = JIRA(server, basic_auth=(username, password))
-    project = jira.project(project_key.upper())
-    current_lead = project.lead.key
-    return current_lead
+    logging.info("Project: %s", jira_config['project_key'].upper())
+    jira = JIRA(jira_config['server'],
+                basic_auth=(jira_config['username'],
+                            jira_config['password']))
+    project = jira.project(jira_config['project_key'].upper())
+    logging.info("Current project lead: %s", project.lead.key)
+    return project.lead.key
 
-def get_supposed_lead(url, regex, jira_server, jira_username, jira_password, project_key):
+def get_supposed_lead(jira_config, url, regex):
     """Downloads current ICS file for parsing.
 
     Args:
+        jira_config     dict    Server, username, password and project
+                                key.
         url             str     URL for the ical file.
         regex           str     Regex string for parsing event
                                 subjects.
-        server          str     The URL for the Jira server.
-        username        str     Jira username.
-        password        str     Jira password.
-        project_key     str     Key for the project set of numbers that
-                                prepend all issue IDs; i.e. "SUPPORT-1234"
-                                has the project key "SUPPORT".
     """
-    jira = JIRA(jira_server, basic_auth=(jira_username, jira_password))
+    jira = JIRA(jira_config['server'],
+                basic_auth=(jira_config['username'],
+                            jira_config['password']))
     cal = Calendar.from_ical(requests.get(url).text)
     for event in cal.walk():
         if event.name == "VEVENT":
-            now = time.mktime(datetime.datetime.now().timetuple())
+            now = time.mktime(datetime.datetime.now().utcnow().timetuple())
             start = time.mktime(event.get('dtstart').dt.timetuple())
             end = time.mktime(event.get('dtend').dt.timetuple())
             if now > start and now < end:
                 supposed_lead = re.search(regex, event.get('summary')).group(1)
-    return jira.search_assignable_users_for_projects(supposed_lead, project_key)[0].key
+                logging.debug("Event summary: %s", event.get('summary'))
+                logging.debug("Regex find: %s", supposed_lead)
+                logging.debug("End time of event: %s", event.get('dtend').dt.timetuple())
+    assignee = jira.search_assignable_users_for_projects(supposed_lead,
+                                                         jira_config['project_key'])[0].key
+    logging.info("Supposed project lead: %s", assignee)
+    return assignee
 
-def assign_new_project_lead(server, username, password, project_key, lead):
+def assign_new_project_lead(jira_config, lead):
     """
     Args:
-        server          str     The URL for the Jira server.
-        username        str     Jira username.
-        password        str     Jira password.
-        project_key     str     Key for the project set of numbers that
-                                prepend all issue IDs; i.e. "SUPPORT-1234"
-                                has the project key "SUPPORT".
+        jira_config     dict    Server, username, password and project
+                                key.
+        lead            str     User key to change to.
     """
-    update = {
-        "key": project_key,
-        "lead": lead
-    }
-    update_project_lead = requests.put(server + "/rest/api/latest/project/" + project_key,
-                                        json={"lead": lead},
-                                        auth=(username, password))
-    if update_project_lead.status_code is 200:
+    update_project_lead = requests.put(jira_config['server'] + \
+                                       "/rest/api/latest/project/" + \
+                                       jira_config['project_key'],
+                                       json={"lead": lead},
+                                       auth=(jira_config['username'],
+                                             jira_config['password']))
+    if update_project_lead.status_code == 200:
+        logging.info("Assignee update successful.")
         return True
     else:
-        print update_project_lead.status_code
-        print update_project_lead.text
-        return False
+        logging.critical("Assignee update failed: %s", update_project_lead.status_code)
+        sys.exit(76)
 
 def main():
     """Main function, all work is done here."""
     with open('/etc/joca.conf') as config_data_file:
-        config_data_loaded = json.load(config_data_file)
-    for project in config_data_loaded['projects']:
-        current_lead_key = get_current_project_lead(config_data_loaded['jira']['server'],
-                                                    config_data_loaded['jira']['username'],
-                                                    config_data_loaded['jira']['password'],
-                                                    project['key'])
-        supposed_lead_key = get_supposed_lead(project['ical'],
-                                              project['regex'],
-                                              config_data_loaded['jira']['server'],
-                                              config_data_loaded['jira']['username'],
-                                              config_data_loaded['jira']['password'],
-                                              project['key'])
+        config_data = json.load(config_data_file)
 
+    logging.basicConfig(filename=config_data['local']['logging']['file'],
+                        format=config_data['local']['logging']['format'],
+                        level=config_data['local']['logging']['level'].upper())
+
+    logging.info("=== Starting sync ===")
+    for project in config_data['projects']:
+        jira_config = {
+            "server": config_data['jira']['server'],
+            "username": config_data['jira']['username'],
+            "password": config_data['jira']['password'],
+            "project_key": project['key']
+        }
+        current_lead_key = get_current_project_lead(jira_config)
+        supposed_lead_key = get_supposed_lead(jira_config,
+                                              project['ical'],
+                                              project['regex'])
         if current_lead_key == supposed_lead_key:
-            sys.exit(0)
+            logging.info("No change is necessary, current assignee matches ical.")
         else:
-            assign_new_project_lead(config_data_loaded['jira']['server'],
-                                    config_data_loaded['jira']['username'],
-                                    config_data_loaded['jira']['password'],
-                                    project['key'],
+            assign_new_project_lead(jira_config,
                                     supposed_lead_key)
+    logging.info("=== Sync complete ===")
 
 if __name__ == "__main__":
     main()
