@@ -110,7 +110,7 @@ def assign_new_project_lead(jira_config, lead):
 
 def main():
     """Main function, all work is done here."""
-    with open('/etc/joca.conf') as config_data_file:
+    with open('/etc/joca.config.json') as config_data_file:
         config_data = json.load(config_data_file)
 
     logging.basicConfig(filename=config_data['local']['logging']['file'],
