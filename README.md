@@ -3,6 +3,12 @@ Jira On Call Assignee
 
 Check an ical url (files not supported yet) for current on call.
 
+# Installation
+
+```
+pip install joca
+```
+
 # Version Numbering
 
 joca follows the three major tenents of the [SemVer](https://semver.org/spec/v2.0.0.html) method of software versioning.
