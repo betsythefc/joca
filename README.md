@@ -11,9 +11,56 @@ Check an ical url (files not supported yet) for current on call.
 pip install joca
 ```
 
+# Configuration file
+
+The configuration holds 3 sections, `local`, `jira` and `projects`.
+
+- `local` is for configuring logging and where the config file's schema is located for validation.
+- `jira` houses the username, password and server url of the Jira instance joca connects to.
+- `projects` is a list of objects that tell joca what project, what ical and the regex to apply to the event summary to extract the users name.
+
+Here is a basic configuration:
+
+```
+{
+    "local": {
+        "logging": {
+            "file": "/var/log/joca.log",
+            "format": "%(asctime)s %(levelname)s %(message)s",
+            "level": "info"
+        },
+        "schema": "/etc/joca.config.json.schema"
+    },
+    "jira": {
+        "server": "https://instance.jira.com",
+        "username": "api-user",
+        "password": "hunter2"
+    },
+    "projects": [
+        {
+            "key": "PROJ",
+            "ical": "https://totally.a-website.com/calendar",
+            "regex": "^(.*)$"
+        }
+    ]
+}
+```
+
+- `local.logging`, `format` is not required.
+- `local.logging.level` doesn't need to be uppercase.
+- `projects.#.key` doesn't have to be uppercase, joca will handle that.
+
+`projects` is a list, so feel free to have multiple projects set up, and it will loop over them.
+
+# To do
+
+Check out todo.txt for the basic list of to-do's.
+
+todo.txt follows the syntax rules laid out [here](https://github.com/todotxt/todo.txt).
+
 # Version Numbering
 
-joca follows the three major tenents of the [SemVer](https://semver.org/spec/v2.0.0.html) method of software versioning.
+joca follows the three major tenets of [SemVer](https://semver.org/spec/v2.0.0.html).
 
 > Given a version number MAJOR.MINOR.PATCH, increment the:
 >

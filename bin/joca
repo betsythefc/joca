@@ -127,15 +127,16 @@ def main():
         sys.exit(2)
 
     try:
-        with open(config_data['local']['schema']) as config_schema_file:
-            config_schema = json.load(config_schema_file)
+        if config_data['local'].get("schema", False) is not False:
+            with open(config_data['local']['schema']) as config_schema_file:
+                config_schema = json.load(config_schema_file)
         logging.basicConfig(filename=config_data['local']['logging']['file'],
                             format=config_data['local']['logging']['format'],
                             level=config_data['local']['logging']['level'].upper())
         try:
             jsonschema.validate(config_data, config_schema)
-        # Disabled undefined-variable because ValidationError is a
-        # Python exception from jsonschema, it is not a variable.
+        # Disabled undefined-variable because ValidationError is
+        # a Python exception from jsonschema, not a variable.
         except ValidationError: # pylint: disable=undefined-variable
             logging.critical("Config file failed json schema validation.")
             sys.exit(22)

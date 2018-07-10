@@ -11,7 +11,7 @@ except(IOError, ImportError):
 
 setuptools.setup(
     name="joca",
-    version="1.1.2",
+    version="1.2.0",
     author="Bryce McNab",
     author_email="brycemcnab@pm.me",
     description="Sync project lead with ical (for on call assignees)",
