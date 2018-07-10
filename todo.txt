@@ -1,4 +1,3 @@
-Write complete README.md @minor
 Create unit tests for primary script @minor
 Add YAML/TOML config support @major +YAMLsupport +TOMLsupport
 Add ical file support @major
