@@ -11,7 +11,7 @@ except(IOError, ImportError):
 
 setuptools.setup(
     name="joca",
-    version="1.3.2",
+    version="1.3.3",
     author="Bryce McNab",
     author_email="brycemcnab@pm.me",
     description="Sync project lead with ical (for on call assignees)",
@@ -34,11 +34,5 @@ setuptools.setup(
         "jira",
         "icalendar",
         "jsonschema",
-        "json",
-        "sys",
-        "re",
-        "datetime",
-        "time",
-        "logging"
     ]
 ) 
