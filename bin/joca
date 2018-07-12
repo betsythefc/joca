@@ -164,6 +164,9 @@ def main():
         else:
             assign_new_project_lead(jira_config,
                                     supposed_lead_key)
+            confirm_current_lead_key = get_current_project_lead(jira_config)
+            if confirmed_current_lead_key == supposed_lead_key:
+                logging.info("Confirmed project lead was changed.")
     logging.info("=== Sync complete ===")
 
 if __name__ == "__main__":
