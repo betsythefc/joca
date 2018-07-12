@@ -4,7 +4,7 @@ current_version="v$(grep -E '^    version="[0-9]*\.[0-9]*\.[0-9]*",$' setup.py |
 check_for_tag=$(git tag | grep ${current_version})
 committed=$(git status | grep "nothing to commit")
 
-if ["${committed}" == ""];
+if [["${committed}" == ""]];
 then
     echo "Commit your changes!"
     exit
