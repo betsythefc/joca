@@ -23,6 +23,8 @@ import re
 import datetime
 import time
 import logging
+import pkg_resources
+import os.path
 
 try:
     import requests
@@ -118,6 +120,7 @@ def main():
     """Main function, all work is done here."""
 
     config_file = "/etc/joca.config.json"
+    config_schema_file = "joca.config.json.schema"
 
     try:
         with open(config_file) as config_data_file:
@@ -126,23 +129,23 @@ def main():
         logging.critical("Configuration file not found: %s", config_file)
         sys.exit(2)
 
+    config_schema_path = '/'.join(('resources', config_schema_file))
+    print config_schema_path
+    config_schema_data = pkg_resources.resource_stream(__name__, config_schema_path)
+    with config_schema_data as config_schema_open:
+        config_schema = json.load(config_schema_open)
+
+    logging.basicConfig(filename=config_data['local']['logging']['file'],
+                        format=config_data['local']['logging']['format'],
+                        level=config_data['local']['logging']['level'].upper())
     try:
-        if config_data['local'].get("schema", False) is not False:
-            with open(config_data['local']['schema']) as config_schema_file:
-                config_schema = json.load(config_schema_file)
-        logging.basicConfig(filename=config_data['local']['logging']['file'],
-                            format=config_data['local']['logging']['format'],
-                            level=config_data['local']['logging']['level'].upper())
-        try:
-            jsonschema.validate(config_data, config_schema)
-        # Disabled undefined-variable because ValidationError is
-        # a Python exception from jsonschema, not a variable.
-        except ValidationError: # pylint: disable=undefined-variable
-            logging.critical("Config file failed json schema validation.")
-            sys.exit(22)
-        logging.info("Configuration file passed validation.")
-    except IOError:
-        logging.warn("Could not find schema to validate config file.")
+        jsonschema.validate(config_data, config_schema)
+    # Disabled undefined-variable because ValidationError is
+    # a Python exception from jsonschema, not a variable.
+    except ValidationError: # pylint: disable=undefined-variable
+        logging.critical("Config file failed json schema validation.")
+        sys.exit(22)
+    logging.info("Configuration file passed validation.")
 
     logging.info("=== Starting sync ===")
     for project in config_data['projects']:

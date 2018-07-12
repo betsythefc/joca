@@ -1,2 +1,2 @@
 include todo.txt
-include joca.config.json.schema
+include resources/joca.config.json.schema

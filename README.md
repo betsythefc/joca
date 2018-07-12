@@ -15,7 +15,7 @@ pip install joca
 
 The configuration holds 3 sections, `local`, `jira` and `projects`.
 
-- `local` is for configuring logging and where the config file's schema is located for validation.
+- `local` is for configuring logging.
 - `jira` houses the username, password and server url of the Jira instance joca connects to.
 - `projects` is a list of objects that tell joca what project, what ical and the regex to apply to the event summary to extract the users name.
 
@@ -29,7 +29,6 @@ Here is a basic configuration:
             "format": "%(asctime)s %(levelname)s %(message)s",
             "level": "info"
         },
-        "schema": "/etc/joca.config.json.schema"
     },
     "jira": {
         "server": "https://instance.jira.com",
