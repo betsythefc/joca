@@ -86,6 +86,25 @@ Example: `1.23.4-2018033000`:
 
 Please read the full spec at the link above or in the citations.
 
+# Copyright
+
+> JOCA -- Jira On Call Assignee -- Change project lead based on an ical event.
+> Copyright (C) 2018 Bryce McNab
+>
+> This program is free software: you can redistribute it and/or modify
+> it under the terms of the GNU General Public License as published by
+> the Free Software Foundation, either version 3 of the License, or
+> (at your option) any later version.
+>
+> This program is distributed in the hope that it will be useful,
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> GNU General Public License for more details.
+
+> You should have received a copy of the GNU General Public License
+> along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 # Citations
 
 Preston-Warner, T. (2013). _Semantic Versioning 2.0.0_. Retrieved November 27, 2017, from
