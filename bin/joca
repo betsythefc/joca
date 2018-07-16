@@ -59,11 +59,11 @@ def get_current_project_lead(jira_config):
     Returns:
         String: user key.
     """
-    logging.info("Project: %s", jira_config['project_key'].upper())
+    logging.info("Project: %s", jira_config['project_key'])
     jira = JIRA(jira_config['server'],
                 basic_auth=(jira_config['username'],
                             jira_config['password']))
-    project = jira.project(jira_config['project_key'].upper())
+    project = jira.project(jira_config['project_key'])
     logging.info("Current project lead: %s", project.lead.key)
     return project.lead.key
 
@@ -153,7 +153,7 @@ def main():
             "server": config_data['jira']['server'],
             "username": config_data['jira']['username'],
             "password": config_data['jira']['password'],
-            "project_key": project['key']
+            "project_key": project['key'].upper()
         }
         current_lead_key = get_current_project_lead(jira_config)
         supposed_lead_key = get_supposed_lead(jira_config,

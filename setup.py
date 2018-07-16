@@ -27,7 +27,7 @@ except(IOError, ImportError):
 
 setuptools.setup(
     name="joca",
-    version="1.3.6",
+    version="1.3.7",
     author="Bryce McNab",
     author_email="brycemcnab@pm.me",
     description="Sync project lead with ical (for on call assignees)",
@@ -41,6 +41,12 @@ setuptools.setup(
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Topic :: Software Development :: Version Control :: Git",
+        "Environment :: Console",
+        "Intended Audience :: System Administrators",
+        "Intended Audience :: Developers",
+        "Natural Language :: English",
+        "Topic :: Software Development :: Bug Tracking",
+        "Topic :: Utilities",
     ],
     scripts=[
         'bin/joca',
