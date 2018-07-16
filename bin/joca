@@ -23,7 +23,7 @@ import re
 import datetime
 import time
 import logging
-import pkg_resources
+import os.path
 
 try:
     import requests
@@ -128,10 +128,9 @@ def main():
         logging.critical("Configuration file not found: %s", config_file)
         sys.exit(2)
 
-    config_schema_path = '/'.join(('resources', config_schema_file))
-    print config_schema_path
-    config_schema_data = pkg_resources.resource_stream(__name__, config_schema_path)
-    with config_schema_data as config_schema_open:
+    with open(os.path.dirname(__file__) + \
+              '/../resources/' + \
+              config_schema_file) as config_schema_open:
         config_schema = json.load(config_schema_open)
 
     logging.basicConfig(filename=config_data['local']['logging']['file'],
