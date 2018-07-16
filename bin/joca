@@ -24,7 +24,6 @@ import datetime
 import time
 import logging
 import pkg_resources
-import os.path
 
 try:
     import requests
@@ -165,7 +164,7 @@ def main():
             assign_new_project_lead(jira_config,
                                     supposed_lead_key)
             confirm_current_lead_key = get_current_project_lead(jira_config)
-            if confirmed_current_lead_key == supposed_lead_key:
+            if confirm_current_lead_key == supposed_lead_key:
                 logging.info("Confirmed project lead was changed.")
     logging.info("=== Sync complete ===")
 
