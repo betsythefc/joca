@@ -98,7 +98,6 @@ def get_supposed_lead(jira_config, url, regex):
                 logging.debug("End time of event: %s", event.get('dtend').dt.timetuple())
     if ' ' in supposed_lead:
         supposed_lead = usernameify(supposed_lead)
-        print supposed_lead
     try:
         assignee = jira.search_allowed_users_for_issue(supposed_lead,
                                                        projectKey=project)[0].key
