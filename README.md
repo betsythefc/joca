@@ -90,13 +90,14 @@ Please read the full spec at the link above or in the citations.
 
 Exit/Error codes use the best approximation from `errno.h`.
 
-|Code|errno.h        |joca usage                         |
-|----|---------------|-----------------------------------|
-|2   |ENOENT         |The file does not exist.           |
-|5   |EIO            |The output was not expected.       |
-|13  |EACCES         |Jira returned a 401 Not Authorized.|
-|43  |EPROTONOSUPPORT|File failed schema validation.     |
-|78  |ENOSYS         |Required import is not installed.  |
+|Code|errno.h        |joca usage                                |
+|----|---------------|------------------------------------------|
+|2   |ENOENT         |The file does not exist.                  |
+|5   |EIO            |The output was not expected.              |
+|13  |EACCES         |Jira returned a 401 Not Authorized.       |
+|22  |EINVAL         |Supposed Lead cannot be made Project Lead.|
+|43  |EPROTONOSUPPORT|File failed schema validation.            |
+|78  |ENOSYS         |Required import is not installed.         |
 
 # Copyright
 

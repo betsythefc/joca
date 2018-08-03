@@ -84,6 +84,7 @@ def get_supposed_lead(jira_config, url, regex):
     jira = JIRA(jira_config['server'],
                 basic_auth=(jira_config['username'],
                             jira_config['password']))
+    project = jira_config["project_key"]
     cal = Calendar.from_ical(requests.get(url).text)
     for event in cal.walk():
         if event.name == "VEVENT":
@@ -93,12 +94,34 @@ def get_supposed_lead(jira_config, url, regex):
             if now > start and now < end:
                 supposed_lead = re.search(regex, event.get('summary')).group(1)
                 logging.debug("Event summary: %s", event.get('summary'))
-                logging.debug("Regex find: %s", supposed_lead)
+                logging.info("Regex find: %s", supposed_lead)
                 logging.debug("End time of event: %s", event.get('dtend').dt.timetuple())
-    assignee = jira.search_assignable_users_for_projects(supposed_lead,
-                                                         jira_config['project_key'])[0].key
+    if ' ' in supposed_lead:
+        supposed_lead = usernameify(supposed_lead)
+        print supposed_lead
+    try:
+        assignee = jira.search_allowed_users_for_issue(supposed_lead,
+                                                       projectKey=project)[0].key
+    except IndexError:
+        logging.critical("jira.search_assignable_users_for_projects could not find %s.",
+                         supposed_lead)
+        sys.exit(22)
     logging.info("Supposed project lead: %s", assignee)
     return assignee
+
+def usernameify(name):
+    """Turn full names into usernames
+
+    Args:
+        name    str     Name like "John Smith" or "jane doe".
+
+    Returns:
+        username string in the form of "jsmith" or "jdoe".
+    """
+    first_name = name.split()[0]
+    last_name = name.split()[1]
+    username = first_name.lower()[0] + last_name.lower()
+    return username
 
 def assign_new_project_lead(jira_config, lead):
     """
@@ -150,6 +173,8 @@ def main():
         logging.warning("Could not open log file, logging to stdout:")
         logging.warning("    This could be a result of not having the correct permissions.")
 
+    logging.info("=== Starting sync ===")
+
     try:
         # Open and validate config.
         with open(os.path.dirname(__file__) + \
@@ -166,8 +191,6 @@ def main():
         # a Python exception from jsonschema, not a variable.
         logging.critical("Config file failed json schema validation.")
         sys.exit(43)
-
-    logging.info("=== Starting sync ===")
 
     for project in config_data['projects']:
         jira_config = {
