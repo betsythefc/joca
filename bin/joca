@@ -29,25 +29,25 @@ try:
     import requests
 except ImportError:
     logging.critical("ImportError for 'requests'; ensure it is installed.")
-    sys.exit(71)
+    sys.exit(78)
 
 try:
     from icalendar import Calendar
 except ImportError:
     logging.critical("ImportError for 'icalendar'; ensure it is installed.")
-    sys.exit(71)
+    sys.exit(78)
 
 try:
-    from jira import JIRA
+    from jira import JIRA, JIRAError
 except ImportError:
     logging.critical("ImportError for 'jira'; ensure it is installed.")
-    sys.exit(71)
+    sys.exit(78)
 
 try:
     import jsonschema
 except ImportError:
     logging.critical("ImportError for 'jsonschema'; ensure it is installed.")
-    sys.exit(71)
+    sys.exit(78)
 
 def get_current_project_lead(jira_config):
     """Polls Jira for the current project lead.
@@ -59,11 +59,16 @@ def get_current_project_lead(jira_config):
         String: user key.
     """
     logging.info("Project: %s", jira_config['project_key'])
-    jira = JIRA(jira_config['server'],
-                basic_auth=(jira_config['username'],
-                            jira_config['password']))
-    project = jira.project(jira_config['project_key'])
-    logging.info("Current project lead: %s", project.lead.key)
+    try:
+        jira = JIRA(jira_config['server'],
+                    basic_auth=(jira_config['username'],
+                                jira_config['password']))
+        project = jira.project(jira_config['project_key'])
+        logging.info("Current project lead: %s", project.lead.key)
+    except JIRAError:
+        logging.critical("Connection to Jira via API failed:")
+        logging.critical("    This may be because you are not authorized.")
+        sys.exit(13)
     return project.lead.key
 
 def get_supposed_lead(jira_config, url, regex):
@@ -113,7 +118,7 @@ def assign_new_project_lead(jira_config, lead):
         return True
     else:
         logging.critical("Assignee update failed: %s", update_project_lead.status_code)
-        sys.exit(76)
+        sys.exit(5)
 
 def main():
     """Main function, all work is done here."""
@@ -128,24 +133,42 @@ def main():
         logging.critical("Configuration file not found: %s", config_file)
         sys.exit(2)
 
-    with open(os.path.dirname(__file__) + \
-              '/../resources/' + \
-              config_schema_file) as config_schema_open:
-        config_schema = json.load(config_schema_open)
-
-    logging.basicConfig(filename=config_data['local']['logging']['file'],
-                        format=config_data['local']['logging']['format'],
-                        level=config_data['local']['logging']['level'].upper())
     try:
+        # Check if log file can be opened
+        # If it cannot, log a warning and log to stdout/stderr
+        log_file = config_data['local']['logging']['file']
+        # Only tests if the file can be opened, nothing more.
+        with open(log_file) as log_file_data: # pylint: disable=unused-variable
+            pass
+        logging.basicConfig(filename=config_data['local']['logging']['file'],
+                            format=config_data['local']['logging']['format'],
+                            level=config_data['local']['logging']['level'].upper())
+    except IOError:
+        logging.basicConfig(stream=sys.stdout,
+                            format=config_data['local']['logging']['format'],
+                            level=config_data['local']['logging']['level'].upper())
+        logging.warning("Could not open log file, logging to stdout:")
+        logging.warning("    This could be a result of not having the correct permissions.")
+
+    try:
+        # Open and validate config.
+        with open(os.path.dirname(__file__) + \
+                  '/../resources/' + \
+                  config_schema_file) as config_schema_open:
+            config_schema = json.load(config_schema_open)
         jsonschema.validate(config_data, config_schema)
-    # Disabled undefined-variable because ValidationError is
-    # a Python exception from jsonschema, not a variable.
+        logging.info("Configuration file passed validation.")
+    except IOError:
+        logging.warning("Cannot find schema file for config:")
+        logging.warning("    Moving forward without config validation.")
     except ValidationError: # pylint: disable=undefined-variable
+        # Disabled undefined-variable because ValidationError is
+        # a Python exception from jsonschema, not a variable.
         logging.critical("Config file failed json schema validation.")
-        sys.exit(22)
-    logging.info("Configuration file passed validation.")
+        sys.exit(43)
 
     logging.info("=== Starting sync ===")
+
     for project in config_data['projects']:
         jira_config = {
             "server": config_data['jira']['server'],
