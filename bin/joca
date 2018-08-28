@@ -23,31 +23,49 @@ import re
 import datetime
 import time
 import logging
-import os.path
+import os
+
+def exit_code(exception):
+    """Turn an exception into an exit code and error message.
+
+    Args:
+        exception   exception   This is the exception object.
+
+    Returns:
+        Tuple in the form of (exit code, description).
+        Most descriptions are just the exception text."""
+    codes = {
+        "IOError": (2, exception),
+        "ValidationError": (8, exception),
+        "IndexError": (22, "Cannot find user."),
+        "JIRAError": (71, exception),
+        "ImportError": (79, exception),
+    }
+    return codes[exception.__class__.__name__]
 
 try:
     import requests
-except ImportError:
-    logging.critical("ImportError for 'requests'; ensure it is installed.")
-    sys.exit(78)
+except ImportError as exc:
+    logging.critical("%s: %s", exc.__class__.__name__, exc)
+    sys.exit(exit_code(exc)[0])
 
 try:
     from icalendar import Calendar
-except ImportError:
-    logging.critical("ImportError for 'icalendar'; ensure it is installed.")
-    sys.exit(78)
+except ImportError as exc:
+    logging.critical("%s: %s", exc.__class__.__name__, exc)
+    sys.exit(exit_code(exc)[0])
 
 try:
     from jira import JIRA, JIRAError
-except ImportError:
-    logging.critical("ImportError for 'jira'; ensure it is installed.")
-    sys.exit(78)
+except ImportError as exc:
+    logging.critical("%s: %s", exc.__class__.__name__, exc)
+    sys.exit(exit_code(exc)[0])
 
 try:
     import jsonschema
-except ImportError:
-    logging.critical("ImportError for 'jsonschema'; ensure it is installed.")
-    sys.exit(78)
+except ImportError as exc:
+    logging.critical("%s: %s", exc.__class__.__name__, exc)
+    sys.exit(exit_code(exc)[0])
 
 def get_current_project_lead(jira_config):
     """Polls Jira for the current project lead.
@@ -56,8 +74,7 @@ def get_current_project_lead(jira_config):
         jira_config     dict    Server, username, password and project
                                 key.
     Returns:
-        String: user key.
-    """
+        String: user key."""
     logging.info("Project: %s", jira_config['project_key'])
     try:
         jira = JIRA(jira_config['server'],
@@ -65,10 +82,9 @@ def get_current_project_lead(jira_config):
                                 jira_config['password']))
         project = jira.project(jira_config['project_key'])
         logging.info("Current project lead: %s", project.lead.key)
-    except JIRAError:
-        logging.critical("Connection to Jira via API failed:")
-        logging.critical("    This may be because you are not authorized.")
-        sys.exit(13)
+    except JIRAError as exc:
+        logging.critical("%s: %s", exc.__class__.__name__, exc)
+        sys.exit(exit_code(exc)[0])
     return project.lead.key
 
 def get_supposed_lead(jira_config, url, regex):
@@ -101,10 +117,9 @@ def get_supposed_lead(jira_config, url, regex):
     try:
         assignee = jira.search_allowed_users_for_issue(supposed_lead,
                                                        projectKey=project)[0].key
-    except IndexError:
-        logging.critical("jira.search_assignable_users_for_projects could not find %s.",
-                         supposed_lead)
-        sys.exit(22)
+    except IndexError as exc:
+        logging.critical("%s: %s", exc.__class__.__name__, exit_code(exc)[1])
+        sys.exit(exit_code(exc)[0])
     logging.info("Supposed project lead: %s", assignee)
     return assignee
 
@@ -142,35 +157,53 @@ def assign_new_project_lead(jira_config, lead):
         logging.critical("Assignee update failed: %s", update_project_lead.status_code)
         sys.exit(5)
 
-def main():
+def main(): # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    # Disabled the 3 warnings from pylint that I don't think should apply to
+    # 'main' functions. A lot of this is unable to broken out into other
+    # functions.
     """Main function, all work is done here."""
 
-    config_file = "/etc/joca.config.json"
+    try:
+        config_file = os.environ["JOCA_CONFIG_FILE"]
+    except KeyError:
+        config_file = "/var/joca.config.json"
+
     config_schema_file = "joca.config.json.schema"
 
     try:
         with open(config_file) as config_data_file:
             config_data = json.load(config_data_file)
-    except IOError:
-        logging.critical("Configuration file not found: %s", config_file)
-        sys.exit(2)
+    except IOError as exc:
+        logging.critical("%s: %s", exc.__class__.__name__, exit_code(exc)[1])
+        sys.exit(exit_code(exc)[0])
 
     try:
         # Check if log file can be opened
         # If it cannot, log a warning and log to stdout/stderr
-        log_file = config_data['local']['logging']['file']
+        log_file = config_data['local']['logging'].get("file", "/var/log/joca.log")
         # Only tests if the file can be opened, nothing more.
         with open(log_file) as log_file_data: # pylint: disable=unused-variable
             pass
-        logging.basicConfig(filename=config_data['local']['logging']['file'],
-                            format=config_data['local']['logging']['format'],
-                            level=config_data['local']['logging']['level'].upper())
-    except IOError:
-        logging.basicConfig(stream=sys.stdout,
-                            format=config_data['local']['logging']['format'],
-                            level=config_data['local']['logging']['level'].upper())
-        logging.warning("Could not open log file, logging to stdout:")
-        logging.warning("    This could be a result of not having the correct permissions.")
+        # Set defaults if there is no local/logging section in the config.
+        log_format = config_data['local']['logging'].get("format", None)
+        log_level = config_data['local']['logging'].get("level", "CRITICAL")
+        if log_format is None:
+            logging.basicConfig(filename=log_file,
+                                level=log_level.upper())
+        else:
+            logging.basicConfig(filename=log_file,
+                                format=log_format,
+                                level=log_level.upper())
+    except IOError as exc:
+        if log_format is None:
+            logging.basicConfig(stream=sys.stdout,
+                                level=log_level.upper())
+        else:
+            logging.basicConfig(stream=sys.stdout,
+                                format=log_format,
+                                level=log_level.upper())
+        logging.warning("%s: %s", exc.__class__.__name__, exit_code(exc)[1])
+
 
     logging.info("=== Starting sync ===")
 
@@ -182,14 +215,13 @@ def main():
             config_schema = json.load(config_schema_open)
         jsonschema.validate(config_data, config_schema)
         logging.info("Configuration file passed validation.")
-    except IOError:
-        logging.warning("Cannot find schema file for config:")
-        logging.warning("    Moving forward without config validation.")
-    except ValidationError: # pylint: disable=undefined-variable
+    except IOError as exc:
+        logging.warning("%s: %s", exc.__class__.__name__, exit_code(exc)[1])
+    except ValidationError as exc: # pylint: disable=undefined-variable
         # Disabled undefined-variable because ValidationError is
         # a Python exception from jsonschema, not a variable.
-        logging.critical("Config file failed json schema validation.")
-        sys.exit(43)
+        logging.critical("%s: %s", exc.__class__.__name__, exit_code(exc)[1])
+        sys.exit(exit_code(exc)[0])
 
     for project in config_data['projects']:
         jira_config = {

@@ -27,7 +27,7 @@ except(IOError, ImportError):
 
 setuptools.setup(
     name="joca",
-    version="1.3.17",
+    version="1.4.0",
     author="Bryce McNab",
     author_email="brycemcnab@pm.me",
     description="Sync project lead with ical (for on call assignees)",
@@ -35,7 +35,8 @@ setuptools.setup(
     url="https://www,github.com/betsythefc/joca",
     packages=setuptools.find_packages(),
     data_files=[
-        ("resources", ["resources/joca.config.json.schema"])
+        ("resources", ["resources/joca.config.json.schema"]),
+        ("man/man1", ["joca.1"])
     ],
     include_package_data=True,
     classifiers=[

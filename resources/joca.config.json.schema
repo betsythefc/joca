@@ -20,16 +20,9 @@
               "type": "string",
               "pattern": "^(%\\(.*\\)s)+$"
             }
-          },
-          "required": [
-            "file",
-            "level"
-          ]
+          }
         }
-      },
-      "required": [
-        "logging"
-      ]
+      }
     },
     "jira": {
       "type": "object",
@@ -76,7 +69,6 @@
     }
   },
   "required": [
-    "local",
     "jira",
     "projects"
   ]
