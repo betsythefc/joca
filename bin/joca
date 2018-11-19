@@ -81,11 +81,12 @@ def get_current_project_lead(jira_config):
                     basic_auth=(jira_config['username'],
                                 jira_config['password']))
         project = jira.project(jira_config['project_key'])
-        logging.info("Current project lead: %s", project.lead.key)
+        current_lead = project.lead._session['key']
+        logging.info("Current project lead: %s", current_lead)
     except JIRAError as exc:
         logging.critical("%s: %s", exc.__class__.__name__, exc)
         sys.exit(exit_code(exc)[0])
-    return project.lead.key
+    return current_lead
 
 def get_supposed_lead(jira_config, url, regex):
     """Downloads current ICS file for parsing.
@@ -166,7 +167,7 @@ def main(): # pylint: disable=too-many-locals,too-many-branches,too-many-stateme
     try:
         config_file = os.environ["JOCA_CONFIG_FILE"]
     except KeyError:
-        config_file = "/var/joca.config.json"
+        config_file = "/etc/joca.config.json"
 
     config_schema_file = "joca.config.json.schema"
 
